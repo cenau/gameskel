@@ -1,0 +1,36 @@
+{
+  "name": "gameskel",
+  "version": "0.0.0",
+  "description": "",
+  "main": "",
+  "dependencies": {
+    "cannon": "^0.6.2",
+    "glsl-fog": "0.0.1",
+    "glsl-noise": "0.0.0",
+    "glslify": "^6.0.2",
+    "keydrown": "^1.2.2",
+    "three": "*",
+    "three-effectcomposer": "0.0.1",
+    "tiny-ecs": "^2.0.0"
+  },
+  "devDependencies": {
+    "babel-cli": "*",
+    "babel-preset-es2015": "*",
+    "babelify": "*",
+    "budo": "^10.0.3",
+    "canvas-loop": "*",
+    "glslify": "*"
+  },
+  "browserify": {
+    "transform": [
+      "babelify",
+      "glslify"
+    ]
+  },
+  "scripts": {
+    "dev": "budo src/main.js:dist/main.js --host=localhost --live",
+    "build": "browserify src/main.js -o dist/main.js"
+  },
+  "author": "",
+  "license": ""
+}
