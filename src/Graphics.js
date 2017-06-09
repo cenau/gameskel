@@ -1,8 +1,8 @@
-export default Shape
+export default Graphics
 
 import * as THREE from 'three'
 
-function Shape(){
+function Graphics(){
 	this.mesh = new THREE.Mesh(new THREE.SphereGeometry(
 		1,1,
 		1,1

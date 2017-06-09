@@ -15,13 +15,16 @@ function ready() {
 
 //systems 
 import initPhysics from './initPhysics'
-import initShape from './initShape'
+import initGraphics from './initGraphics'
 import stickToTargetSystem from './stickToTargetSystem'
 
 //components 
 import Physics from './Physics'
-import Shape from './Shape'
+import WASD from './WASD'
+import Graphics from './Graphics'
 import StickToTarget from './StickToTarget'
+import Position from './Position'
+import Quaternion from './Quaternion'
 
 //assets 
 
@@ -59,8 +62,13 @@ var ents = new ecs.EntityManager(); //ents, because, i keep misspelling entities
 
 // the player
 const player = ents.createEntity();
+player.addComponent(Position);
+player.addComponent(Quaternion);
 player.addComponent(Physics);
-player.addComponent(Shape);
+player.addComponent(Graphics);
+player.addComponent(WASD);
+
+player.position.y = 8 
 
 
 renderer.setClearColor(0xff6600, 1)
@@ -132,13 +140,14 @@ var geom = new THREE.PlaneGeometry(
 
 
 const plane = ents.createEntity();
-plane.addComponent(Shape);
+plane.addComponent(Graphics);
+plane.addComponent(Position);
 plane.addComponent(StickToTarget);
-plane.shape.mesh = new THREE.Mesh(geom);
+plane.graphics.mesh = new THREE.Mesh(geom);
 
-plane.shape.mesh.material = deform_mat 
-plane.shape.mesh.material.side=THREE.DoubleSide
-plane.shape.mesh.rotation.x -= 90 * Math.PI/180;
+plane.graphics.mesh.material = deform_mat 
+plane.graphics.mesh.material.side=THREE.DoubleSide
+plane.graphics.mesh.rotation.x -= 90 * Math.PI/180;
 plane.stickToTarget.target = player;
 
 
@@ -154,11 +163,11 @@ app.on('tick', dt => {
     world.step(fixedTimeStep, dt, maxSubSteps);
 
     //run system inits 
-	 ents.queryComponents([Shape]).forEach(function(each){
+	 ents.queryComponents([Graphics]).forEach(function(each){
 
 		
-		if (!each.shape.inScene){
-			initShape(scene,each)
+		if (!each.graphics.inScene){
+			initGraphics(scene,each)
 		}
     })
 	 ents.queryComponents([Physics]).forEach(function(each){
@@ -166,20 +175,35 @@ app.on('tick', dt => {
 			initPhysics(world,each)
 		}
     })
-    //run systems 
-	 ents.queryComponents([Shape,Physics]).forEach(function(each){
-		each.shape.mesh.position.copy(each.physics.body.position) 
-		each.shape.mesh.quaternion.copy(each.physics.body.quaternion);
+    //run systems
+
+	//update position from physics
+	 ents.queryComponents([Physics,Position]).forEach(function(each){
+		each.position.copy(each.physics.body.position) 
+    })
+	//update quaternion from physics
+	 ents.queryComponents([Physics,Quaternion]).forEach(function(each){
+		each.quaternion.copy(each.physics.body.quaternion) 
+    })
+	
+
+	//update mesh from position
+	 ents.queryComponents([Graphics,Position]).forEach(function(each){
+		each.graphics.mesh.position.copy(each.position) 
+
+    })
+	//update mesh from quaternion
+	 ents.queryComponents([Graphics,Quaternion]).forEach(function(each){
+		each.graphics.mesh.quaternion.copy(each.quaternion);
 
     })
 
-	 ents.queryComponents([Shape,StickToTarget]).forEach(function(each){
+	 ents.queryComponents([Position,StickToTarget]).forEach(function(each){
 		stickToTargetSystem(each)
     })
-    camera.position.copy(player.physics.body.position);
-    camera.quaternion.copy(player.physics.body.quaternion);
-//    plane.shape.mesh.position.x = player.physics.body.position.x;
-//    plane.shape.mesh.position.z = player.physics.body.position.z;
+
+    camera.position.copy(player.position);
+    camera.quaternion.copy(player.quaternion);
 })
     
     
@@ -197,42 +221,36 @@ function resize() {
 }
 
 
-kd.LEFT.down(function () {
-});
-
-kd.RIGHT.down(function () {
-});
-
-kd.UP.down(function () {
-});
-
-kd.DOWN.down(function () {
-});
-
-kd.SPACE.up(function () {
-	
-});
+//keyboard input
 
 kd.W.down(function () {
-	player.physics.body.applyLocalImpulse(
-			    new CANNON.Vec3(0, 0, -1 ),
-			        new CANNON.Vec3( 0, 0, 0 )
-			);
+	ents.queryComponents([WASD]).forEach(function(each){
+		each.physics.body.applyLocalImpulse(
+		    new CANNON.Vec3(0, 0, -1 ),
+		    new CANNON.Vec3( 0, 0, 0 )
+		);
+	})
 });
 
 kd.S.down(function () {
-	player.physics.body.applyLocalImpulse(
-			    new CANNON.Vec3(0, 0, 1 ),
-			        new CANNON.Vec3( 0, 0, 0 )
+	ents.queryComponents([WASD]).forEach(function(each){
+		each.physics.body.applyLocalImpulse(
+		new CANNON.Vec3(0, 0, 1 ),
+		new CANNON.Vec3( 0, 0, 0 )
 			);
+	})
 });
 
 kd.A.down(function () {
-	player.physics.body.angularVelocity =new CANNON.Vec3(0,0.05,0); 
+	ents.queryComponents([WASD]).forEach(function(each){
+		each.physics.body.angularVelocity =new CANNON.Vec3(0,0.05,0); 
+	})
 });
 
 kd.D.down(function () {
-	player.physics.body.angularVelocity =new CANNON.Vec3(0,-0.05,0); 
+	ents.queryComponents([WASD]).forEach(function(each){
+		each.physics.body.angularVelocity =new CANNON.Vec3(0,-0.05,0); 
+	})
 });
 
 
