@@ -1,6 +1,6 @@
 export default Physics;
 
 function Physics() {
-  this.body;
+  this.body = undefined;
   this.mass = 5;
 }

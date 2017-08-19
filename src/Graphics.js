@@ -1,6 +1,7 @@
+import * as THREE from 'three';
+
 export default Graphics;
 
-import * as THREE from 'three';
 
 function Graphics() {
   this.mesh = new THREE.Mesh(new THREE.SphereGeometry(
@@ -9,3 +10,7 @@ function Graphics() {
   ));
   this.inScene = false;
 }
+
+Graphics.prototype.setIsInScene = function (bool) {
+  this.inScene = bool;
+};

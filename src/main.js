@@ -3,24 +3,14 @@ import createLoop from 'canvas-loop';
 import kd from 'keydrown';
 import ecs from 'tiny-ecs';
 import ec from 'three-effectcomposer';
-
-const EffectComposer = ec(THREE);
-// import { glslify } from 'glslify'
-const glslify = require('glslify');
-// needed for bug https://github.com/stackgl/glslify/issues/49 - if you try using fixes like glslify babel plugin, then shaders wont live reload!!
 import CANNON from 'cannon';
 
-
-function ready() {
-
-}
-
-// systems 
+// systems
 import initPhysics from './initPhysics';
 import initGraphics from './initGraphics';
 import stickToTargetSystem from './stickToTargetSystem';
 
-// components 
+// components
 import Physics from './Physics';
 import WASD from './WASD';
 import Graphics from './Graphics';
@@ -28,28 +18,36 @@ import StickToTarget from './StickToTarget';
 import Position from './Position';
 import Quaternion from './Quaternion';
 
-// assets 
+
+//  stuff that should be imports but doesnt work
+const EffectComposer = ec(THREE);
+// import { glslify } from 'glslify'
+const glslify = require('glslify');
+// needed for bug https://github.com/stackgl/glslify/issues/49 - if you try using fixes like glslify babel plugin, then shaders wont live reload!!
+
+
+// assets
 
 const scene = new THREE.Scene();
 
 
-// physics 
+// physics
 
 const world = new CANNON.World();
 
-// world.gravity = new CANNON.Vec3(0, -9.82, 0) // m/s²  
-world.gravity = new CANNON.Vec3(0, 0, 0); // m/s² 
+// world.gravity = new CANNON.Vec3(0, -9.82, 0) // m/s²
+world.gravity = new CANNON.Vec3(0, 0, 0); // m/s²
 
 world.broadphase = new CANNON.NaiveBroadphase();
 
 world.solver.iterations = 10;
 
 
-// canvas for rendering	
+//  canvas for rendering
 const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
 
-// renderer 
+// renderer
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
@@ -78,20 +76,33 @@ renderer.setClearColor(0xff6600, 1);
 const fixedTimeStep = 1 / 60; // physics engine setting - keeps render framerate and sim in sync
 const maxSubSteps = 10; // physics engine setting - not 100% sure what this does
 
-// setup buffer render target for render to texture stuff. 
-const bufferScene = new THREE.Scene();
-const bufferTexture = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter });
+// setup buffer render target for render to texture stuff.
 
-// setup camera	
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+// const bufferScene = new THREE.Scene();
+const bufferTexture = new THREE.WebGLRenderTarget(
+  window.innerWidth,
+  window.innerHeight,
+  {
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.NearestFilter,
+  },
+);
+
+// setup camera
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  500);
+
 camera.position.set(0, 0, 0);
 
-// passthrough shader for fullscreen + buffer. Use this as template for effects.  
+// passthrough shader for fullscreen + buffer. Use this as template for effects.
 const passthroughShader = {
 
   uniforms: {
     tLast: { type: 't', value: bufferTexture },
-    tDiffuse: { type: 't', value: null }, // output from previous - all need this  
+    tDiffuse: { type: 't', value: null }, // output from previous - all need this
     iResolution: { type: 'v2', value: new THREE.Vector2() },
     iGlobalTime: { type: 'f', value: 0 },
   },
@@ -103,7 +114,8 @@ const passthroughShader = {
 // effect composer to deal with the screen shaders
 const composer = new EffectComposer(renderer);
 composer.addPass(new EffectComposer.RenderPass(scene, camera)); // the actual scene
-const passthroughEffect = new EffectComposer.ShaderPass(passthroughShader); // the passthrough shader
+const passthroughEffect = new EffectComposer.ShaderPass(passthroughShader);
+
 composer.addPass(passthroughEffect); // adding the passthrough shader
 
 composer.passes[composer.passes.length - 1].renderToScreen = true;
@@ -113,7 +125,7 @@ const light = new THREE.AmbientLight(0x404040); // soft white light
 scene.add(light);
 
 // procedural deformation texture
-const deform_mat = new THREE.ShaderMaterial({
+const deformMat = new THREE.ShaderMaterial({
   vertexShader: glslify('../shaders/deform_vert.glsl'),
   fragmentShader: glslify('../shaders/deform_frag.glsl'),
   transparent: true,
@@ -136,8 +148,8 @@ let time = 0;
 
 // the terrain plane
 const geom = new THREE.PlaneGeometry(
-			    300, 300, // Width and Height
-			        300, 300, // Terrain resolution
+  300, 300, // Width and Height
+  300, 300, // Terrain resolution
 );
 
 
@@ -147,30 +159,30 @@ plane.addComponent(Position);
 plane.addComponent(StickToTarget);
 plane.graphics.mesh = new THREE.Mesh(geom);
 
-plane.graphics.mesh.material = deform_mat;
+plane.graphics.mesh.material = deformMat;
 plane.graphics.mesh.material.side = THREE.DoubleSide;
-plane.graphics.mesh.rotation.x -= 90 * Math.PI / 180;
+plane.graphics.mesh.rotation.x -= (90 * Math.PI) / 180;
 plane.stickToTarget.target = player;
 
 
 app.on('tick', (dt) => {
   kd.tick();
   time += dt / 1000;
-  deform_mat.uniforms.iGlobalTime.value = time;
+  deformMat.uniforms.iGlobalTime.value = time;
   composer.render(scene, camera);
-    	renderer.render(scene, camera, bufferTexture);
-    	passthroughEffect.uniforms.iGlobalTime.value = time;
+  renderer.render(scene, camera, bufferTexture);
+  passthroughEffect.uniforms.iGlobalTime.value = time;
 
 
   world.step(fixedTimeStep, dt, maxSubSteps);
 
-  // run system inits 
-	 ents.queryComponents([Graphics]).forEach((each) => {
+  // run system inits
+  ents.queryComponents([Graphics]).forEach((each) => {
     if (!each.graphics.inScene) {
       initGraphics(scene, each);
     }
   });
-	 ents.queryComponents([Physics]).forEach((each) => {
+  ents.queryComponents([Physics]).forEach((each) => {
     if (!each.physics.body) {
       initPhysics(world, each);
     }
@@ -178,25 +190,25 @@ app.on('tick', (dt) => {
   // run systems
 
   // update position from physics
-	 ents.queryComponents([Physics, Position]).forEach((each) => {
+  ents.queryComponents([Physics, Position]).forEach((each) => {
     each.position.copy(each.physics.body.position);
   });
   // update quaternion from physics
-	 ents.queryComponents([Physics, Quaternion]).forEach((each) => {
+  ents.queryComponents([Physics, Quaternion]).forEach((each) => {
     each.quaternion.copy(each.physics.body.quaternion);
   });
 
 
   // update mesh from position
-	 ents.queryComponents([Graphics, Position]).forEach((each) => {
+  ents.queryComponents([Graphics, Position]).forEach((each) => {
     each.graphics.mesh.position.copy(each.position);
   });
   // update mesh from quaternion
-	 ents.queryComponents([Graphics, Quaternion]).forEach((each) => {
+  ents.queryComponents([Graphics, Quaternion]).forEach((each) => {
     each.graphics.mesh.quaternion.copy(each.quaternion);
   });
 
-	 ents.queryComponents([Position, StickToTarget]).forEach((each) => {
+  ents.queryComponents([Position, StickToTarget]).forEach((each) => {
     stickToTargetSystem(each);
   });
 
@@ -224,8 +236,8 @@ function resize() {
 kd.W.down(() => {
   ents.queryComponents([WASD]).forEach((each) => {
     each.physics.body.applyLocalImpulse(
-		    new CANNON.Vec3(0, 0, -1),
-		    new CANNON.Vec3(0, 0, 0),
+      new CANNON.Vec3(0, 0, -1),
+      new CANNON.Vec3(0, 0, 0),
     );
   });
 });
@@ -241,13 +253,19 @@ kd.S.down(() => {
 
 kd.A.down(() => {
   ents.queryComponents([WASD]).forEach((each) => {
-    each.physics.body.angularVelocity = new CANNON.Vec3(0, 0.05, 0);
+    each.physics.body.applyLocalImpulse(
+      new CANNON.Vec3(-0.1, 0, 0),
+      new CANNON.Vec3(0, 0, -0.1),
+    );
   });
 });
 
 kd.D.down(() => {
   ents.queryComponents([WASD]).forEach((each) => {
-    each.physics.body.angularVelocity = new CANNON.Vec3(0, -0.05, 0);
+    each.physics.body.applyLocalImpulse(
+      new CANNON.Vec3(0.1, 0, 0),
+      new CANNON.Vec3(0, 0, -0.1),
+    );
   });
 });
 

@@ -1,5 +1,5 @@
 export default StickToTarget;
 
 function StickToTarget() {
-  this.target;
+  this.target = undefined;
 }
