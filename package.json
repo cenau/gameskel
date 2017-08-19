@@ -19,7 +19,10 @@
     "babelify": "*",
     "budo": "^10.0.3",
     "canvas-loop": "*",
-    "glslify": "*"
+    "glslify": "*",
+    "eslint": "^4.4.1",
+    "eslint-config-airbnb-base": "^11.3.1",
+    "eslint-plugin-import": "^2.7.0"
   },
   "browserify": {
     "transform": [
@@ -29,7 +32,9 @@
   },
   "scripts": {
     "dev": "budo src/main.js:dist/main.js --host=localhost --live",
-    "build": "browserify src/main.js -o dist/main.js"
+    "build": "browserify src/main.js -o dist/main.js",
+    "lint": "eslint src/*.js; exit 0",
+    "lint:fix": "eslint src/*.js --fix"
   },
   "author": "",
   "license": ""

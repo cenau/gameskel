@@ -1,5 +1,5 @@
-export default WASD
+export default WASD;
 
-function WASD(){
-        
+function WASD() {
+
 }

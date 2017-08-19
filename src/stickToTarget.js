@@ -1,5 +1,5 @@
-export default StickToTarget
+export default StickToTarget;
 
-function StickToTarget(){
-	this.target;
+function StickToTarget() {
+  this.target;
 }
