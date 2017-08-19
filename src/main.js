@@ -205,7 +205,7 @@ function setupRenderer() {
     devicePixelRatio: window.devicePixelRatio,
   });
 
-  rend.setClearColor(0xff6600, 1);
+  rend.setClearColor(0xff8300, 1);
   // renderer.context.getShaderInfoLog = function () { return '' }; //nasty hack to suppress error merssages due to possible ff bug? https://github.com/mrdoob/three.js/issues/9716
   return rend;
 }
