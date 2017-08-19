@@ -18,7 +18,6 @@ import StickToTarget from './StickToTarget';
 import Position from './Position';
 import Quaternion from './Quaternion';
 
-
 //  stuff that should be imports but doesnt work
 const EffectComposer = ec(THREE);
 // import { glslify } from 'glslify'
@@ -28,19 +27,12 @@ const glslify = require('glslify');
 
 // assets
 
-const scene = new THREE.Scene();
+const scene = setupScene();
 
 
 // physics
 
-const world = new CANNON.World();
-
-// world.gravity = new CANNON.Vec3(0, -9.82, 0) // m/s²
-world.gravity = new CANNON.Vec3(0, 0, 0); // m/s²
-
-world.broadphase = new CANNON.NaiveBroadphase();
-
-world.solver.iterations = 10;
+const world = setupWorld();
 
 
 //  canvas for rendering
@@ -48,20 +40,17 @@ const canvas = document.createElement('canvas');
 document.body.appendChild(canvas);
 
 // renderer
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  devicePixelRatio: window.devicePixelRatio,
-});
 
-// renderer.context.getShaderInfoLog = function () { return '' }; //nasty hack to suppress error merssages due to possible ff bug? https://github.com/mrdoob/three.js/issues/9716
-
+const renderer = setupRenderer();
+const camera = setupCamera();
+const composer = setupComposer();
 
 // setup ecs
 const ents = new ecs.EntityManager(); // ents, because, i keep misspelling entities
 
 // the player
 const player = ents.createEntity();
+
 player.addComponent(Position);
 player.addComponent(Quaternion);
 player.addComponent(Physics);
@@ -70,59 +59,6 @@ player.addComponent(WASD);
 
 player.position.y = 8;
 
-
-renderer.setClearColor(0xff6600, 1);
-
-const fixedTimeStep = 1 / 60; // physics engine setting - keeps render framerate and sim in sync
-const maxSubSteps = 10; // physics engine setting - not 100% sure what this does
-
-// setup buffer render target for render to texture stuff.
-
-// const bufferScene = new THREE.Scene();
-const bufferTexture = new THREE.WebGLRenderTarget(
-  window.innerWidth,
-  window.innerHeight,
-  {
-    minFilter: THREE.LinearFilter,
-    magFilter: THREE.NearestFilter,
-  },
-);
-
-// setup camera
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  500);
-
-camera.position.set(0, 0, 0);
-
-// passthrough shader for fullscreen + buffer. Use this as template for effects.
-const passthroughShader = {
-
-  uniforms: {
-    tLast: { type: 't', value: bufferTexture },
-    tDiffuse: { type: 't', value: null }, // output from previous - all need this
-    iResolution: { type: 'v2', value: new THREE.Vector2() },
-    iGlobalTime: { type: 'f', value: 0 },
-  },
-  vertexShader: glslify('../shaders/pass_vert.glsl'),
-  fragmentShader: glslify('../shaders/pass_frag.glsl'),
-
-};
-
-// effect composer to deal with the screen shaders
-const composer = new EffectComposer(renderer);
-composer.addPass(new EffectComposer.RenderPass(scene, camera)); // the actual scene
-const passthroughEffect = new EffectComposer.ShaderPass(passthroughShader);
-
-composer.addPass(passthroughEffect); // adding the passthrough shader
-
-composer.passes[composer.passes.length - 1].renderToScreen = true;
-
-
-const light = new THREE.AmbientLight(0x404040); // soft white light
-scene.add(light);
 
 // procedural deformation texture
 const deformMat = new THREE.ShaderMaterial({
@@ -141,7 +77,7 @@ const deformMat = new THREE.ShaderMaterial({
 const app = createLoop(canvas, { scale: renderer.devicePixelRatio });
 
 // uniforms for screen shaders
-passthroughEffect.uniforms.iResolution.value.set(app.shape[0], app.shape[1]);
+composer.passthroughEffect.uniforms.iResolution.value.set(app.shape[0], app.shape[1]);
 
 // time - for passing into shaders
 let time = 0;
@@ -170,11 +106,11 @@ app.on('tick', (dt) => {
   time += dt / 1000;
   deformMat.uniforms.iGlobalTime.value = time;
   composer.render(scene, camera);
-  renderer.render(scene, camera, bufferTexture);
-  passthroughEffect.uniforms.iGlobalTime.value = time;
+  renderer.render(scene, camera, composer.bufferTexture);
+  composer.passthroughEffect.uniforms.iGlobalTime.value = time;
 
 
-  world.step(fixedTimeStep, dt, maxSubSteps);
+  world.step(world.fixedTimeStep, dt, world.maxSubSteps);
 
   // run system inits
   ents.queryComponents([Graphics]).forEach((each) => {
@@ -222,14 +158,6 @@ app.on('resize', resize);
 app.start();
 resize();
 
-function resize() {
-  const [width, height] = app.shape;
-  camera.aspect = width / height;
-  renderer.setSize(width, height, false);
-
-  camera.updateProjectionMatrix();
-}
-
 
 // keyboard input
 
@@ -269,3 +197,101 @@ kd.D.down(() => {
   });
 });
 
+
+function setupRenderer() {
+  const rend = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    devicePixelRatio: window.devicePixelRatio,
+  });
+
+  rend.setClearColor(0xff6600, 1);
+  // renderer.context.getShaderInfoLog = function () { return '' }; //nasty hack to suppress error merssages due to possible ff bug? https://github.com/mrdoob/three.js/issues/9716
+  return rend;
+}
+
+
+// setup camera
+function setupCamera() {
+  const cam = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    500);
+
+  cam.position.set(0, 0, 0);
+  return cam;
+}
+
+function setupWorld() {
+  const wor = new CANNON.World();
+  // wor.gravity = new CANNON.Vec3(0, -9.82, 0) // m/s²
+  wor.gravity = new CANNON.Vec3(0, 0, 0); // m/s²
+
+  wor.broadphase = new CANNON.NaiveBroadphase();
+
+  wor.solver.iterations = 10;
+
+
+  wor.fixedTimeStep = 1 / 60; // physics engine setting - keeps render framerate and sim in sync
+  wor.maxSubSteps = 10; // physics engine setting - not 100% sure what this does
+
+  return wor;
+}
+
+function setupScene() {
+  const sce = new THREE.Scene();
+  const light = new THREE.AmbientLight(0x404040); // soft white light
+  sce.add(light);
+  return sce;
+}
+
+function setupComposer() {
+  const effectComposer = new EffectComposer(renderer);
+
+  // setup buffer render target for render to texture stuff.
+
+  // const bufferScene = new THREE.Scene();
+  effectComposer.bufferTexture = new THREE.WebGLRenderTarget(
+    window.innerWidth,
+    window.innerHeight,
+    {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.NearestFilter,
+    },
+  );
+
+
+  // passthrough shader for fullscreen + buffer. Use this as template for effects.
+  const passthroughShader = {
+
+    uniforms: {
+      tLast: { type: 't', value: effectComposer.bufferTexture },
+      tDiffuse: { type: 't', value: null }, // output from previous - all need this
+      iResolution: { type: 'v2', value: new THREE.Vector2() },
+      iGlobalTime: { type: 'f', value: 0 },
+    },
+    vertexShader: glslify('../shaders/pass_vert.glsl'),
+    fragmentShader: glslify('../shaders/pass_frag.glsl'),
+
+  };
+
+  // effect composer to deal with the screen shaders
+  effectComposer.addPass(new EffectComposer.RenderPass(scene, camera)); // the actual scene
+  effectComposer.passthroughEffect = new EffectComposer.ShaderPass(passthroughShader);
+
+  effectComposer.addPass(effectComposer.passthroughEffect); // adding the passthrough shader
+
+  effectComposer.passes[effectComposer.passes.length - 1].renderToScreen = true;
+
+  return effectComposer;
+}
+
+
+function resize() {
+  const [width, height] = app.shape;
+  camera.aspect = width / height;
+  renderer.setSize(width, height, false);
+
+  camera.updateProjectionMatrix();
+}
