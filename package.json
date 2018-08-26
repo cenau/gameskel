@@ -1,28 +1,27 @@
 {
   "name": "gameskel",
-  "version": "0.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "3D game skeleton",
   "main": "",
   "dependencies": {
     "cannon": "^0.6.2",
-    "glsl-fog": "0.0.1",
-    "glsl-noise": "0.0.0",
-    "glslify": "^6.0.2",
-    "keydrown": "^1.2.2",
+    "canvas-loop": "*",
+    "glsl-fog": "*",
+    "glsl-noise": "*",
+    "keydrown": "*",
     "three": "*",
-    "three-effectcomposer": "0.0.1",
-    "tiny-ecs": "^2.0.0",
-    "canvas-loop": "*"
+    "three-effectcomposer": "*",
+    "tiny-ecs": "*"
   },
   "devDependencies": {
-    "babel-cli": "*",
-    "babel-preset-es2015": "*",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "*",
     "babelify": "*",
-    "budo": "^10.0.3",
-    "glslify": "*",
-    "eslint": "^4.4.1",
-    "eslint-config-airbnb-base": "^11.3.1",
-    "eslint-plugin-import": "^2.7.0"
+    "budo": "^11.3.2",
+    "eslint": "^5.4.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "*",
+    "glslify": "*"
   },
   "browserify": {
     "transform": [
